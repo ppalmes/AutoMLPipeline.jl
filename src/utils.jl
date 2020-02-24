@@ -11,7 +11,7 @@ using Random: randperm
 
 
 export holdout, kfold, score, infer_eltype, nested_dict_to_tuples,
-       nested_dict_set!, nested_dict_merge, create_machine,
+       nested_dict_set!, nested_dict_merge, createmachine,
        mergedict, getiris,
        skipmean,skipmedian,skipstd,
        aggregatorclskipmissing
@@ -198,7 +198,7 @@ function nested_dict_merge(first::Dict, second::Dict)
 end
 
 """
-    create_machine(prototype::Machine, options=nothing)
+    createmachine(prototype::Machine, options=nothing)
 
 Create machine
 
@@ -207,14 +207,14 @@ Create machine
 
 Returns: new machine
 """
-function create_machine(prototype::Machine, options=nothing)
-  new_options = copy(prototype.options)
-  if options != nothing
-    new_options = nested_dict_merge(new_options, options)
+function createmachine(prototype::Machine, args::Dict=Dict())
+  new_args = copy(prototype.args)
+  if args != Dict()
+    new_args = nested_dict_merge(new_args, args)
   end
 
   prototype_type = typeof(prototype)
-  return prototype_type(new_options)
+  return prototype_type(new_args)
 end
 
 """

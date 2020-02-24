@@ -8,6 +8,9 @@ using .AbsTypes
 include("utils.jl")
 using .Utils
 
+include("basefilters.jl")
+using .BaseFilters
+
 include("pipelines.jl")
 using .Pipelines
 
