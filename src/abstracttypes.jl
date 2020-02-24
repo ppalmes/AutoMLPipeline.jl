@@ -2,7 +2,7 @@ module AbsTypes
 
 using DataFrames
 
-export fit!, transform!
+export fit!, transform!, fit_transform!
 export Machine, Learner, Transformer, Workflow, Computer
 
 abstract type Machine end

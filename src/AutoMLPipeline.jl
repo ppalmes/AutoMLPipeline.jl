@@ -14,4 +14,7 @@ using .BaseFilters
 include("pipelines.jl")
 using .Pipelines
 
+include("featureselector.jl")
+using .FeatureSelectors
+
 end # module

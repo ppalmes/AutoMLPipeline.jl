@@ -45,7 +45,7 @@ function LinearPipeline(machs...)
   return combo
 end
 
-function fit!(pipe::LinearPipeline, features::DataFrame=DataFrame(), labels::Vector=[])
+function fit!(pipe::LinearPipeline, features::DataFrame, labels::Vector=[])
   instances=deepcopy(features)
   machines = pipe.args[:machines]
   machine_args = pipe.args[:machine_args]
@@ -72,7 +72,7 @@ function fit!(pipe::LinearPipeline, features::DataFrame=DataFrame(), labels::Vec
   )
 end
 
-function transform!(pipe::LinearPipeline, instances::DataFrame=DataFrame())
+function transform!(pipe::LinearPipeline, instances::DataFrame)
   machines = pipe.model[:machines]
 
   current_instances = deepcopy(instances)
@@ -120,7 +120,7 @@ function ComboPipeline(machs...)
 end
 
 
-function fit!(pipe::ComboPipeline, features::DataFrame=DataFrame(), labels::Vector=[])
+function fit!(pipe::ComboPipeline, features::DataFrame, labels::Vector=[])
   instances=deepcopy(features)
   machines = pipe.args[:machines]
   machine_args = pipe.args[:machine_args]
@@ -140,7 +140,7 @@ function fit!(pipe::ComboPipeline, features::DataFrame=DataFrame(), labels::Vect
   )
 end
 
-function transform!(pipe::ComboPipeline, features::DataFrame=DataFrame())
+function transform!(pipe::ComboPipeline, features::DataFrame)
   machines = pipe.model[:machines]
   instances = deepcopy(features)
   new_instances = DataFrame()
@@ -162,7 +162,7 @@ function processexpr(args)
     elseif args[ndx] == :*
       args[ndx] = :ComboPipeline
     #else
-    #  args[ndx] = args[ndx]
+    #  esc(:(args[ndx] = eval(args[ndx]))) # refer to local variable
     #  #args[ndx] = eval(:($(args[ndx])))
     #  #args[ndx] = eval(args[ndx])
     #  #println(args[ndx])
@@ -182,12 +182,13 @@ function pipeline_test()
   data = getiris()
   X=data[:,1:5]
   X[!,5]= X[!,5] .|> string
-  global ohe = OneHotEncoder()
+  ohe = OneHotEncoder()
+  global ohe2 = OneHotEncoder()
   linear1 = LinearPipeline(Dict(:name=>"lp",:machines => [ohe]))
   linear2 = LinearPipeline(Dict(:name=>"lp",:machines => [ohe]))
   combo1 = ComboPipeline(Dict(:machines=>[ohe,ohe]))
   combo2 = ComboPipeline(Dict(:machines=>[linear1,linear2]))
-  global linear1 = LinearPipeline([ohe])
+  linear1 = LinearPipeline([ohe])
   linear2 = LinearPipeline([ohe])
   combo1 = ComboPipeline([ohe,ohe])
   combo2 = ComboPipeline([linear1,linear2])
@@ -199,7 +200,7 @@ function pipeline_test()
   res3=transform!(combo2,X)
   res4=fit_transform!(combo2,X)
   @assert (res3 .== res3) |> Matrix |> sum == 2100
-  pcombo1 = @pipelinesetup(ohe * linear1)
+  pcombo1 = @pipelinesetup(ohe2 * ohe2)
   pres1 = fit_transform!(pcombo1,X)
   @assert (pres1 .== res1) |> Matrix |> sum == 2100
 end
