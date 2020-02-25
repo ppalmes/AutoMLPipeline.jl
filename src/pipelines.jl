@@ -9,7 +9,7 @@ using AutoMLPipeline.Utils
 
 import AutoMLPipeline.AbsTypes: fit!, transform!
 export fit!, transform!
-export LinearPipeline, ComboPipeline, @pipelinesetup
+export LinearPipeline, ComboPipeline, @pipeline, @pipelinex
 
 mutable struct LinearPipeline <: Workflow
   name::String
@@ -171,10 +171,17 @@ function processexpr(args)
   return args
 end
 
-macro pipelinesetup(expr)
-  res = processexpr(expr.args)
-  expr.args = res
-  expr
+macro pipeline(expr)
+  lexpr = :($(esc(expr)))
+  res = processexpr(lexpr.args)
+  lexpr.args = res
+  lexpr
+end
+
+macro pipelinex(expr)
+  lexpr = :($(esc(expr)))
+  res = processexpr(lexpr.args)
+  res
 end
 
 
