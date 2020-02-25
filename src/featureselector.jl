@@ -136,7 +136,7 @@ mutable struct CatNumDiscriminator <: Transformer
     end
 end
 
-function CatNumDiscriminator(maxcat::Int=24)
+function CatNumDiscriminator(maxcat::Int)
     CatNumDiscriminator(Dict(:maxcategories=>maxcat))
 end
 

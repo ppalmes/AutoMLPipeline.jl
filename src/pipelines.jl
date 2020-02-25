@@ -3,13 +3,13 @@ module Pipelines
 using DataFrames
 using Random
 
-using AutoMLPipeline.AbsTypes: Machine, Transformer, Learner, Workflow, Computer, fit_transform!
+using AutoMLPipeline.AbsTypes
 using AutoMLPipeline.BaseFilters
 using AutoMLPipeline.Utils
 
 import AutoMLPipeline.AbsTypes: fit!, transform!
 export fit!, transform!
-export LinearPipeline, ComboPipeline
+export LinearPipeline, ComboPipeline, @pipelinesetup
 
 mutable struct LinearPipeline <: Workflow
   name::String
@@ -111,7 +111,7 @@ end
 function ComboPipeline(machs...)
   combo=nothing
   if eltype(machs) <: Machine
-    v=[x for x in machs] # convert tuples to vector
+    v=[eval(x) for x in machs] # convert tuples to vector
     combo = ComboPipeline(v)
   else
     error("argument setup error")
@@ -174,35 +174,8 @@ end
 macro pipelinesetup(expr)
   res = processexpr(expr.args)
   expr.args = res
-  #println(expr.args)
   expr
 end
 
-function pipeline_test()
-  data = getiris()
-  X=data[:,1:5]
-  X[!,5]= X[!,5] .|> string
-  ohe = OneHotEncoder()
-  global ohe2 = OneHotEncoder()
-  linear1 = LinearPipeline(Dict(:name=>"lp",:machines => [ohe]))
-  linear2 = LinearPipeline(Dict(:name=>"lp",:machines => [ohe]))
-  combo1 = ComboPipeline(Dict(:machines=>[ohe,ohe]))
-  combo2 = ComboPipeline(Dict(:machines=>[linear1,linear2]))
-  linear1 = LinearPipeline([ohe])
-  linear2 = LinearPipeline([ohe])
-  combo1 = ComboPipeline([ohe,ohe])
-  combo2 = ComboPipeline([linear1,linear2])
-  fit!(combo1,X)
-  res1=transform!(combo1,X)
-  res2=fit_transform!(combo1,X)
-  @assert (res1 .== res2) |> Matrix |> sum == 2100
-  fit!(combo2,X)
-  res3=transform!(combo2,X)
-  res4=fit_transform!(combo2,X)
-  @assert (res3 .== res3) |> Matrix |> sum == 2100
-  pcombo1 = @pipelinesetup(ohe2 * ohe2)
-  pres1 = fit_transform!(pcombo1,X)
-  @assert (pres1 .== res1) |> Matrix |> sum == 2100
-end
 
 end

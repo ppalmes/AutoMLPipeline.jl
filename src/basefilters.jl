@@ -50,8 +50,8 @@ end
 function fit!(ohe::OneHotEncoder, instances::DataFrame, labels::Vector=[]) 
   # Obtain nominal columns
   nominal_columns = ohe.args[:nominal_columns]
-  if nominal_columns == []
-    nominal_columns = find_nominal_columns(instances)
+  if nominal_columns == Int[]
+    nominal_columns,_ = find_catnum_columns(instances)
   end
 
   # Obtain unique values for each nominal column

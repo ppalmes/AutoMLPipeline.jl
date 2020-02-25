@@ -1,16 +1,17 @@
 # Decision trees as found in DecisionTree Julia package.
 module DecisionTreeLearners
 
-using DataFrames
-using TSML.TSMLTypes
-import TSML.TSMLTypes.fit!
-import TSML.TSMLTypes.transform!
-using TSML.Utils
-
-export fit!,transform!
-
 import DecisionTree
 DT = DecisionTree
+
+# standard included modules
+using DataFrames
+using Random
+using AutoMLPipeline.AbsTypes
+using AutoMLPipeline.Utils
+
+import AutoMLPipeline.AbsTypes: fit!, transform!
+export fit!, transform!
 
 export PrunedTree, RandomForest, Adaboost
 
@@ -39,11 +40,14 @@ Hyperparmeters:
 
 Implements `fit!`, `transform!`
 """
-mutable struct PrunedTree <: TSLearner
-  model
-  args
+mutable struct PrunedTree <: Learner
+  name::String
+  model::Dict
+  args::Dict
+
   function PrunedTree(args=Dict())
     default_args = Dict(
+      :name => "prunetree",
       # Output to train against
       # (:class).
       :output => :class,
@@ -61,38 +65,45 @@ mutable struct PrunedTree <: TSLearner
         :min_purity_increase => 0.0
       )
     )
-    new(nothing, mergedict(default_args, args))
+    cargs = nested_dict_merge(default_args, args)
+    cargs[:name] = cargs[:name]*"_"*randstring(3)
+    new(cargs[:name],Dict(),cargs)
   end
 end
 
 """
-    fit!(tree::PrunedTree, features::T, labels::Vector) where {T<:Union{Vector,Matrix,DataFrame}}
+    fit!(tree::PrunedTree, features::DataFrame, labels::Vector) 
 
 Optimize the hyperparameters of `PrunedTree` instance.
 """
-function fit!(tree::PrunedTree, features::DataFrame, labels::Vector) 
+function fit!(ptree::PrunedTree, features::DataFrame, labels::Vector) 
   instances=convert(Matrix,features)
-  impl_args = tree.args[:impl_args]
-  tree.model = DT.build_tree(
+  args = ptree.args[:impl_args]
+  btreemodel = DT.build_tree(
     labels,
     instances,
     0, # num_subfeatures (keep all)
-    impl_args[:max_depth],
-    impl_args[:min_samples_leaf],
-    impl_args[:min_samples_split],
-    impl_args[:min_purity_increase])
-  tree.model = DT.prune_tree(tree.model, impl_args[:purity_threshold])
+    args[:max_depth],
+    args[:min_samples_leaf],
+    args[:min_samples_split],
+    args[:min_purity_increase])
+  btreemodel = DT.prune_tree(btreemodel, args[:purity_threshold])
+  ptree.model = Dict(
+                    :dtmodel => btreemodel,
+                    :impl_args => args
+                   )
 end
 
 
 """
-    transform!(tree::PrundTree, features::T) where {T<:Union{Vector,Matrix,DataFrame}}
+    transform!(ptree::PrunedTree, features::DataFrame)
 
 Predict using the optimized hyperparameters of the trained `PrunedTree` instance.
 """
-function transform!(tree::PrunedTree, features::DataFrame)::Vector{<:Any}
+function transform!(ptree::PrunedTree, features::DataFrame)
   instances=convert(Matrix,features)
-  return DT.apply_tree(tree.model, instances)
+  model = ptree.model[:dtmodel]
+  return DT.apply_tree(model, instances)
 end
 
 
@@ -123,11 +134,13 @@ Hyperparmeters:
 
 Implements `fit!`, `transform!`
 """
-mutable struct RandomForest <: TSLearner
-  model
-  args
+mutable struct RandomForest <: Learner
+  name::String
+  model::Dict
+  args::Dict
   function RandomForest(args=Dict())
     default_args = Dict(
+      :name => "rf",
       # Output to train against
       # (:class).
       :output => :class,
@@ -143,7 +156,9 @@ mutable struct RandomForest <: TSLearner
         :max_depth => -1
       )
     )
-    new(nothing, mergedict(default_args, args))
+    cargs = nested_dict_merge(default_args, args)
+    cargs[:name] = cargs[:name]*"_"*randstring(3)
+    new(cargs[:name],Dict(),cargs)
   end
 end
 
@@ -158,7 +173,7 @@ function fit!(forest::RandomForest, features::DataFrame, labels::Vector)
   # Set training-dependent options
   impl_args = forest.args[:impl_args]
   # Build model
-  forest.model = DT.build_forest(
+  model = DT.build_forest(
     labels, 
     instances,
     impl_args[:num_subfeatures],
@@ -166,6 +181,10 @@ function fit!(forest::RandomForest, features::DataFrame, labels::Vector)
     impl_args[:partial_sampling],
     impl_args[:max_depth]
   )
+  forest.model = Dict(
+                      :dtmodel => model,
+                      :impl_args => impl_args
+                     )
 end
 
 
@@ -175,10 +194,11 @@ end
 
 Predict using the optimized hyperparameters of the trained `RandomForest` instance.
 """
-function transform!(forest::RandomForest, features::DataFrame)::Vector{<:Any}
+function transform!(forest::RandomForest, features::DataFrame)
   instances = features
   instances=convert(Matrix,features)
-  return DT.apply_forest(forest.model, instances)
+  model = forest.model[:dtmodel]
+  return DT.apply_forest(model, instances)
 end
 
 
@@ -200,11 +220,13 @@ Hyperparameters:
 
 Implements `fit!`, `transform!`
 """
-mutable struct Adaboost <: TSLearner
-  model
-  args
+mutable struct Adaboost <: Learner
+  name::String
+  model::Dict
+  args::Dict
   function Adaboost(args=Dict())
     default_args = Dict(
+      :name => "adaboost",
       # Output to train against
       # (:class).
       :output => :class,
@@ -214,13 +236,15 @@ mutable struct Adaboost <: TSLearner
         :num_iterations => 7
       )
     )
-    new(nothing, mergedict(default_args, args))
+    cargs = nested_dict_merge(default_args, args)
+    cargs[:name] = cargs[:name]*"_"*randstring(3)
+    new(cargs[:name],Dict(),cargs)
   end
 end
 
 
 """
-    fit!(adaboost::Adaboost, features::T, labels::Vector) where {T<:Union{Vector,Matrix,DataFrame}}
+    fit!(adaboost::Adaboost, features::DataFrame, labels::Vector) 
 
 Optimize the hyperparameters of `Adaboost` instance.
 """
