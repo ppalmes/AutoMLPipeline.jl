@@ -31,13 +31,13 @@ function find_catnum_columns(instances::DataFrame, maxuniqcat::Int=0)
   nominal_columns = Int[]
   real_columns = Int[]
   for column in 1:size(instances, 2)
-    vdat = instances[:, column]
+    vdat = instances[:, column:column] # returns a 1-column dataframe
     col_eltype = infer_eltype(vdat)
     # nominal if column type is not real or only small number of unique instances 
     # otherwise, real
     if !<:(col_eltype, Real)
       push!(nominal_columns, column)
-    elseif length(unique(vdat)) <= maxuniqcat
+    elseif nrow(unique(vdat)) <= maxuniqcat
       push!(nominal_columns, column)
     else
       push!(real_columns, column)

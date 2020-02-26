@@ -15,7 +15,8 @@ using .BaseFilters
 
 include("pipelines.jl")
 using .Pipelines
-export @pipelinesetup
+export @pipeline
+export @pipelinex
 
 include("featureselector.jl")
 using .FeatureSelectors

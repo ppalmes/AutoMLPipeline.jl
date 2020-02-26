@@ -5,12 +5,15 @@ using AutoMLPipeline
 using AutoMLPipeline.Pipelines
 using AutoMLPipeline.BaseFilters
 using AutoMLPipeline.SKPreprocessors
+using AutoMLPipeline.DecisionTreeLearners
 using AutoMLPipeline.Utils
+using AutoMLPipeline.FeatureSelectors
  
 
 function test_pipeline()
   data = getiris()
   X=data[:,1:5]
+  Y=data[:,5] |> Vector
   X[!,5]= X[!,5] .|> string
   ohe = OneHotEncoder()
   ohe1 = OneHotEncoder()
@@ -41,6 +44,12 @@ function test_pipeline()
   @test fit_transform!(pcombo2,features) |> Matrix |> size |> collect |> sum == 162
   pcombo2 = @pipeline pca+ica+fa
   @test fit_transform!(pcombo2,features) |> Matrix |> size |> collect |> sum == 154
+  disc = CatNumDiscriminator()
+  catf = CatFeatureSelector()
+  numf = NumFeatureSelector()
+  rf = RandomForest()
+  pcombo3 = @pipeline disc + ((catf*numf) * (numf+pca) * (numf+ica) * (catf+ohe)) + rf
+  (fit_transform!(pcombo3,X,Y)  .== Y) |> sum == 150
 end
 @testset "Pipelines" begin
     test_pipeline()
